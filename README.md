@@ -20,7 +20,7 @@ Features real-time ticket categorization, dynamic SLA tracking, a First-Principl
 
 ```bash
 # 1. Clone repo
-git clone https://github.com/<YOUR_USERNAME>/sentry-triage-ticket.git
+git clone https://github.com/disneyatomik/sentry-triage-ticket.git
 cd sentry-triage-ticket
 
 # 2. Run with Docker Compose
