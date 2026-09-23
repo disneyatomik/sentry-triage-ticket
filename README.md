@@ -28,6 +28,3 @@ docker compose up --build -d
 
 # 3. Open Web Dashboard
 http://localhost:8000
-
-<img width="959" height="473" alt="image" src="https://github.com/user-attachments/assets/d8f0b81d-c1ec-4f33-ad15-a40f3f891c28" />
-
