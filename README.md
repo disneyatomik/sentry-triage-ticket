@@ -1,5 +1,7 @@
 # Sentry Triage – Production AI Support Ticket Triage Engine 🛡️
 
+<img width="959" height="473" alt="Screenshot 2026-09-24 015755" src="https://github.com/user-attachments/assets/ab266860-80fa-419b-899b-543b07d685b6" />
+
 An end-to-end, multi-task NLP support triage microservice built with **PyTorch**, **DistilBERT**, **FastAPI**, and **Docker**. 
 
 Features real-time ticket categorization, dynamic SLA tracking, a First-Principles RAG knowledge-base retrieval engine, and a **Human-in-the-Loop (HITL)** review queue to safeguard high-risk decisions.
