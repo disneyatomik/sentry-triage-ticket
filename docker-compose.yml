@@ -1,0 +1,9 @@
+services:
+  sentry-triage:
+    build: .
+    container_name: sentry_triage_engine
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    environment:
+      - PORT=8000

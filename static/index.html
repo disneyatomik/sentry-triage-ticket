@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sentry Triage - Intelligent Support Engine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #090b0e;
+            --sidebar: #0f1217;
+            --card: #13171e;
+            --card-border: #1f2633;
+            --accent: #00ea82;
+            --accent-dim: rgba(0, 234, 130, 0.12);
+            --danger: #ff4d4f;
+            --danger-dim: rgba(255, 77, 79, 0.15);
+            --warning: #f5a623;
+            --warning-dim: rgba(245, 166, 35, 0.15);
+            --info: #38bdf8;
+            --text: #e2e8f0;
+            --text-muted: #718096;
+            --text-dim: #4a5568;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* LEFT ICON BAR */
+        .icon-bar {
+            width: 58px;
+            background: var(--sidebar);
+            border-right: 1px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 18px 0;
+            gap: 20px;
+        }
+
+        .logo {
+            width: 32px;
+            height: 32px;
+            background: var(--accent);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: #000;
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+
+        .nav-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover,
+        .nav-btn.active {
+            background: var(--card-border);
+            color: var(--accent);
+        }
+
+        /* MAIN CONTAINER */
+        .app-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* TOP HEADER */
+        .top-header {
+            height: 52px;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .badge-status {
+            padding: 3px 10px;
+            border-radius: 12px;
+            background: var(--card-border);
+            color: var(--accent);
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .stats-counters {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .stats-counters span b {
+            color: var(--text);
+        }
+
+        /* TAB CONTENT PANELS */
+        .tab-view {
+            flex: 1;
+            display: none;
+            overflow: hidden;
+        }
+
+        .tab-view.active {
+            display: flex;
+        }
+
+        /* ================= TAB 1: LIVE TRIAGE ================= */
+        .queue-panel {
+            width: 300px;
+            border-right: 1px solid var(--card-border);
+            background: #0b0e13;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .queue-header {
+            padding: 16px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-dim);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .queue-list {
+            flex: 1;
+            overflow-y: auto;
+            list-style: none;
+        }
+
+        .queue-item {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .queue-item:hover,
+        .queue-item.selected {
+            background: var(--card);
+        }
+
+        .queue-item-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        .queue-item-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .ticket-content-panel {
+            flex: 1;
+            padding: 28px 32px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .ticket-card {
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 22px;
+        }
+
+        .tag-source {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: rgba(0, 234, 130, 0.1);
+            color: var(--accent);
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .ticket-text-box {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #cbd5e1;
+            margin-bottom: 18px;
+            background: #0d1017;
+            padding: 16px;
+            border-radius: 6px;
+            border: 1px solid var(--card-border);
+        }
+
+        .btn-run {
+            background: var(--accent);
+            color: #000;
+            font-weight: 700;
+            padding: 10px 22px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: opacity 0.2s;
+        }
+
+        .btn-run:hover {
+            opacity: 0.9;
+        }
+
+        /* RESULTS GRID */
+        .triage-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
+        }
+
+        .res-card {
+            background: #0d1017;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .res-label {
+            font-size: 11px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .res-val {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .res-conf {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .banner-escalation {
+            background: var(--danger-dim);
+            border: 1px solid var(--danger);
+            color: #ffa39e;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* RAG GROUNDING BOX (ANKUSH TERMINAL 2) */
+        .rag-box {
+            background: #0d1017;
+            border: 1px solid #1e293b;
+            border-left: 3px solid var(--info);
+            border-radius: 8px;
+            padding: 16px 20px;
+            display: none;
+        }
+
+        .rag-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--info);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .rag-draft {
+            font-size: 13px;
+            line-height: 1.5;
+            color: #94a3b8;
+            background: #080a0e;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px dashed #243044;
+        }
+
+        /* ================= TAB 2: REVIEW QUEUE (IMAGE 2) ================= */
+        .review-container {
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+        }
+
+        .review-header-box {
+            margin-bottom: 24px;
+        }
+
+        .review-header-box h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .review-header-box p {
+            font-size: 13px;
+            color: var(--text-muted);
+            max-width: 800px;
+            line-height: 1.5;
+        }
+
+        .review-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .review-table th {
+            text-align: left;
+            padding: 12px 16px;
+            color: var(--text-dim);
+            font-size: 11px;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .review-table td {
+            padding: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .urgency-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .urgency-crit {
+            background: var(--danger-dim);
+            color: var(--danger);
+        }
+
+        .urgency-high {
+            background: var(--warning-dim);
+            color: var(--warning);
+        }
+
+        .urgency-med {
+            background: rgba(56, 189, 248, 0.15);
+            color: #38bdf8;
+        }
+
+        /* ================= TAB 3: STATS FOR NERDS (IMAGE 3) ================= */
+        .accuracy-container {
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+        }
+
+        .stat-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .stat-metric-card {
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .stat-title {
+            font-size: 11px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 6px;
+        }
+
+        .stat-number {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* CONFUSION MATRICES GRID */
+        .matrices-title {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 12px;
+        }
+
+        .matrices-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .matrix-box {
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .matrix-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .matrix-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        .matrix-cell {
+            padding: 10px 4px;
+            background: #090c10;
+            border-radius: 4px;
+            color: var(--text-dim);
+        }
+
+        .matrix-cell.diag {
+            background: rgba(0, 234, 130, 0.15);
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .matrix-cell.off-diag {
+            background: rgba(255, 77, 79, 0.1);
+            color: var(--danger);
+        }
+
+        /* DISAGREEMENTS TABLE */
+        .disagreements-box {
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .disagreements-box h3 {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 12px;
+        }
+
+        .disagree-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            font-size: 12px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .disagree-field {
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: #1e2633;
+            color: var(--text-muted);
+            font-size: 10px;
+        }
+
+        .disagree-text {
+            flex: 1;
+            margin: 0 16px;
+            color: #94a3b8;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .disagree-flow {
+            color: var(--danger);
+            font-size: 11px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- LEFT NAVIGATION BAR -->
+    <aside class="icon-bar">
+        <div class="logo">S</div>
+        <button class="nav-btn active" onclick="switchTab('tab-triage')" title="Live Queue">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M4 17l6-6-6-6m8 14h8" />
+            </svg>
+        </button>
+        <button class="nav-btn" onclick="switchTab('tab-review')" title="Sentry Review Queue">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+        </button>
+        <button class="nav-btn" onclick="switchTab('tab-accuracy')" title="Accuracy & Stats for Nerds">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M18 20V10M12 20V4M6 20v-6" />
+            </svg>
+        </button>
+    </aside>
+
+    <!-- MAIN APP AREA -->
+    <main class="app-main">
+        <!-- TOP HEADER -->
+        <header class="top-header">
+            <div class="header-left">
+                <strong>Sentry Triage</strong> Support Engine
+                <span class="badge-status">IDLE</span>
+            </div>
+            <div class="stats-counters">
+                <span>replied: <b id="cnt-replied">0</b></span>
+                <span>escalated: <b id="cnt-escalated">0</b></span>
+                <span id="queue-progress">0 / 0 DONE</span>
+            </div>
+        </header>
+
+        <!-- TAB 1: LIVE TRIAGE QUEUE (SCREEN 1) -->
+        <section id="tab-triage" class="tab-view active">
+            <div class="queue-panel">
+                <div class="queue-header">Incoming Queue</div>
+                <ul class="queue-list" id="queue-list"></ul>
+            </div>
+
+            <div class="ticket-content-panel">
+                <div class="ticket-card">
+                    <span class="tag-source">Sentry Support System</span>
+                    <h2 id="view-ticket-title" style="margin-bottom:12px; font-size:18px;">Select a ticket</h2>
+                    <div class="ticket-text-box" id="view-ticket-body">Click any ticket in the left queue to view and
+                        run triage.</div>
+
+                    <button class="btn-run" id="btn-run" onclick="runCurrentTriage()">
+                        <span>▶</span> RUN TRIAGE
+                    </button>
+                </div>
+
+                <!-- ESCALATION BANNER -->
+                <div class="banner-escalation" id="escalation-banner">
+                    ⚠️ <b>Sentry Review Triggered:</b> <span id="escalation-reason"></span>
+                </div>
+
+                <!-- PREDICTION RESULTS -->
+                <div class="triage-results" id="triage-results" style="display:none;">
+                    <div class="res-card">
+                        <div class="res-label">Sentiment</div>
+                        <div class="res-val" id="res-sentiment">-</div>
+                        <div class="res-conf" id="conf-sentiment"></div>
+                    </div>
+                    <div class="res-card">
+                        <div class="res-label">Request Type</div>
+                        <div class="res-val" id="res-type">-</div>
+                        <div class="res-conf" id="conf-type"></div>
+                    </div>
+                    <div class="res-card">
+                        <div class="res-label">Product Area</div>
+                        <div class="res-val" id="res-area">-</div>
+                        <div class="res-conf" id="conf-area"></div>
+                    </div>
+                    <div class="res-card">
+                        <div class="res-label">Priority</div>
+                        <div class="res-val" id="res-priority">-</div>
+                        <div class="res-conf" id="conf-priority"></div>
+                    </div>
+                    <div class="res-card">
+                        <div class="res-label">Assigned Squad</div>
+                        <div class="res-val" id="res-team" style="font-size:12px; color:var(--info);">-</div>
+                    </div>
+                    <div class="res-card">
+                        <div class="res-label">Target SLA</div>
+                        <div class="res-val" id="res-sla" style="color:var(--warning);">-</div>
+                    </div>
+                </div>
+
+                <!-- RAG GROUNDED AGENT DRAFT (TERMINAL 2) -->
+                <div class="rag-box" id="rag-box">
+                    <div class="rag-header">
+                        <span>📚 Grounded Policy: <b id="rag-doc-title" style="color:var(--text);">-</b></span>
+                        <span id="rag-score" style="color:var(--accent);">Score: 0.00</span>
+                    </div>
+                    <div class="rag-draft" id="rag-draft-text">Generating response...</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: SENTRY REVIEW QUEUE (SCREEN 2) -->
+        <section id="tab-review" class="tab-view">
+            <div class="review-container">
+                <div class="review-header-box">
+                    <h2>Sentry Review Queue (HITL Safety Gate)</h2>
+                    <p>Uncertain decisions route here for human verification instead of auto-finalizing — gated on low
+                        confidence, high churn risk, or sensitive keywords. Rows sort by urgency, then confidence.</p>
+                </div>
+
+                <table class="review-table">
+                    <thead>
+                        <tr>
+                            <th>Ticket # / Issue</th>
+                            <th>Urgency</th>
+                            <th>Confidence</th>
+                            <th>Flag Reason</th>
+                            <th>Routing Squad</th>
+                        </tr>
+                    </thead>
+                    <tbody id="review-table-body">
+                        <tr>
+                            <td colspan="5" style="color:var(--text-dim); text-align:center; padding:32px;">No escalated
+                                tickets yet. Run triage on the queue!</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- TAB 3: STATS FOR NERDS (SCREEN 3) -->
+        <section id="tab-accuracy" class="tab-view">
+            <div class="accuracy-container">
+                <div class="review-header-box">
+                    <h2>Model Performance & Evaluation (Stats for Nerds)</h2>
+                    <p>Multi-task metrics evaluated across the test partition. Track Exact Match rows alongside
+                        single-task weighted accuracies, confusion matrices, and active failure/disagreement logs.</p>
+                </div>
+
+                <!-- TOP STAT CARDS -->
+                <div class="stat-cards-grid">
+                    <div class="stat-metric-card">
+                        <div class="stat-title">Exact-Match (All 5)</div>
+                        <div class="stat-number" id="acc-exact">36.8%</div>
+                        <div class="stat-sub">Strict multi-head agreement</div>
+                    </div>
+                    <div class="stat-metric-card">
+                        <div class="stat-title">Sentiment Accuracy</div>
+                        <div class="stat-number" id="acc-sentiment">99.2%</div>
+                        <div class="stat-sub">Weighted F1: 0.992</div>
+                    </div>
+                    <div class="stat-metric-card">
+                        <div class="stat-title">Request Type Accuracy</div>
+                        <div class="stat-number" id="acc-type">99.1%</div>
+                        <div class="stat-sub">Weighted F1: 0.991</div>
+                    </div>
+                    <div class="stat-metric-card">
+                        <div class="stat-title">Product Area Accuracy</div>
+                        <div class="stat-number" id="acc-area">80.1%</div>
+                        <div class="stat-sub">Weighted F1: 0.798</div>
+                    </div>
+                    <div class="stat-metric-card">
+                        <div class="stat-title">Satisfaction Accuracy</div>
+                        <div class="stat-number" id="acc-sat">82.8%</div>
+                        <div class="stat-sub">Weighted F1: 0.825</div>
+                    </div>
+                </div>
+
+                <!-- CONFUSION MATRICES (IMAGE 2) -->
+                <div class="matrices-title">Confusion Matrices (Diagonal = Correct)</div>
+                <div class="matrices-row">
+                    <div class="matrix-box">
+                        <div class="matrix-header">
+                            <span>Sentiment Head</span>
+                            <span style="color:var(--accent);">99.2% on diag</span>
+                        </div>
+                        <div class="matrix-grid">
+                            <div class="matrix-cell diag">Pos: 99%</div>
+                            <div class="matrix-cell off-diag">1%</div>
+                            <div class="matrix-cell">0%</div>
+                            <div class="matrix-cell">0%</div>
+                            <div class="matrix-cell diag">Neu: 99%</div>
+                            <div class="matrix-cell off-diag">1%</div>
+                            <div class="matrix-cell off-diag">1%</div>
+                            <div class="matrix-cell">0%</div>
+                            <div class="matrix-cell diag">Neg: 99%</div>
+                        </div>
+                    </div>
+
+                    <div class="matrix-box">
+                        <div class="matrix-header">
+                            <span>Request Type Head</span>
+                            <span style="color:var(--accent);">99.1% on diag</span>
+                        </div>
+                        <div class="matrix-grid">
+                            <div class="matrix-cell diag">Bug: 99%</div>
+                            <div class="matrix-cell off-diag">1%</div>
+                            <div class="matrix-cell">0%</div>
+                            <div class="matrix-cell">0%</div>
+                            <div class="matrix-cell diag">Feat: 98%</div>
+                            <div class="matrix-cell off-diag">2%</div>
+                            <div class="matrix-cell">0%</div>
+                            <div class="matrix-cell off-diag">1%</div>
+                            <div class="matrix-cell diag">Bill: 99%</div>
+                        </div>
+                    </div>
+
+                    <div class="matrix-box">
+                        <div class="matrix-header">
+                            <span>Priority Head</span>
+                            <span style="color:var(--warning);">53.5% on diag</span>
+                        </div>
+                        <div class="matrix-grid">
+                            <div class="matrix-cell diag">Low: 64%</div>
+                            <div class="matrix-cell off-diag">22%</div>
+                            <div class="matrix-cell off-diag">14%</div>
+                            <div class="matrix-cell off-diag">18%</div>
+                            <div class="matrix-cell diag">Med: 52%</div>
+                            <div class="matrix-cell off-diag">30%</div>
+                            <div class="matrix-cell off-diag">12%</div>
+                            <div class="matrix-cell off-diag">28%</div>
+                            <div class="matrix-cell diag">Crit: 55%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DISAGREEMENTS / ERROR ANALYSIS TABLE (IMAGE 2) -->
+                <div class="disagreements-box">
+                    <h3>Disagreements & Misclassifications Log (Test Set Analysis)</h3>
+                    <div class="disagree-row">
+                        <span class="disagree-field">PRODUCT_AREA</span>
+                        <span class="disagree-text">"Refund + delete all candidate data immediately from cloud
+                            backups"</span>
+                        <span class="disagree-flow">expected: Payments → predicted: Other ↗</span>
+                    </div>
+                    <div class="disagree-row">
+                        <span class="disagree-field">PRIORITY</span>
+                        <span class="disagree-text">"Charts on overview page keep refreshing in a 2-second loop"</span>
+                        <span class="disagree-flow">expected: High → predicted: Medium ↗</span>
+                    </div>
+                    <div class="disagree-row">
+                        <span class="disagree-field">PRODUCT_AREA</span>
+                        <span class="disagree-text">"The webhook status is returning 401 unauthorized bearer
+                            token"</span>
+                        <span class="disagree-flow">expected: API → predicted: Login ↗</span>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <script>
+        let tickets = [];
+        let selectedTicket = null;
+        let repliedCount = 0;
+        let escalatedCount = 0;
+        let reviewQueue = [];
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-view').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        async function init() {
+            try {
+                const res = await fetch('/api/v1/sample-tickets');
+                const data = await res.json();
+                tickets = data.tickets || [];
+                renderQueue();
+                if (tickets.length > 0) selectTicket(0);
+
+                // Fetch metrics for Screen 3
+                const mRes = await fetch('/api/v1/metrics');
+                const mData = await mRes.json();
+                if (mData.success && mData.metrics) {
+                    const m = mData.metrics;
+                    if (m.exact_match) document.getElementById('acc-exact').innerText = (m.exact_match * 100).toFixed(1) + '%';
+                    if (m.sentiment_accuracy) document.getElementById('acc-sentiment').innerText = (m.sentiment_accuracy * 100).toFixed(1) + '%';
+                    if (m.request_type_accuracy) document.getElementById('acc-type').innerText = (m.request_type_accuracy * 100).toFixed(1) + '%';
+                    if (m.product_area_accuracy) document.getElementById('acc-area').innerText = (m.product_area_accuracy * 100).toFixed(1) + '%';
+                    if (m.satisfaction_accuracy) document.getElementById('acc-sat').innerText = (m.satisfaction_accuracy * 100).toFixed(1) + '%';
+                }
+            } catch (err) {
+                console.error("Init error:", err);
+            }
+        }
+
+        function renderQueue() {
+            const list = document.getElementById('queue-list');
+            list.innerHTML = '';
+            tickets.forEach((t, idx) => {
+                const li = document.createElement('li');
+                li.className = 'queue-item' + (idx === 0 ? ' selected' : '');
+                li.onclick = () => selectTicket(idx);
+                li.innerHTML = `
+          <div class="queue-item-title">#${idx + 1} ${t.text.slice(0, 32)}...</div>
+          <div class="queue-item-meta">
+            <span>QUEUED</span>
+          </div>
+        `;
+                list.appendChild(li);
+            });
+            document.getElementById('queue-progress').innerText = `0 / ${tickets.length} DONE`;
+        }
+
+        function selectTicket(idx) {
+            selectedTicket = tickets[idx];
+            document.querySelectorAll('.queue-item').forEach((el, i) => {
+                el.classList.toggle('selected', i === idx);
+            });
+            document.getElementById('view-ticket-title').innerText = `Ticket #${idx + 1}`;
+            document.getElementById('view-ticket-body').innerText = selectedTicket.text;
+            document.getElementById('triage-results').style.display = 'none';
+            document.getElementById('escalation-banner').style.display = 'none';
+            document.getElementById('rag-box').style.display = 'none';
+        }
+
+        async function runCurrentTriage() {
+            if (!selectedTicket) return;
+            const btn = document.getElementById('btn-run');
+            btn.innerText = 'TRIAGING...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/v1/triage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: selectedTicket.text })
+                });
+                const resp = await res.json();
+                const data = resp.data;
+
+                // Populate classification results
+                document.getElementById('res-sentiment').innerText = data.predictions.sentiment;
+                document.getElementById('conf-sentiment').innerText = (data.confidences.sentiment * 100).toFixed(1) + '% conf';
+
+                document.getElementById('res-type').innerText = data.predictions.request_type;
+                document.getElementById('conf-type').innerText = (data.confidences.request_type * 100).toFixed(1) + '% conf';
+
+                document.getElementById('res-area').innerText = data.predictions.product_area;
+                document.getElementById('conf-area').innerText = (data.confidences.product_area * 100).toFixed(1) + '% conf';
+
+                document.getElementById('res-priority').innerText = data.predictions.priority;
+                document.getElementById('conf-priority').innerText = (data.confidences.priority * 100).toFixed(1) + '% conf';
+
+                document.getElementById('res-team').innerText = data.triage.assigned_team;
+                document.getElementById('res-sla').innerText = data.triage.sla_label;
+                document.getElementById('triage-results').style.display = 'grid';
+
+                // Populate RAG Grounded Box
+                if (data.rag) {
+                    document.getElementById('rag-box').style.display = 'block';
+                    document.getElementById('rag-doc-title').innerText = data.rag.doc_title;
+                    document.getElementById('rag-score').innerText = `Cosine Sim: ${(data.rag.similarity_score * 100).toFixed(1)}%`;
+                    document.getElementById('rag-draft-text').innerText = data.rag.draft_response;
+                }
+
+                // Update ticket status & progress tracking
+                const isEscalated = data.triage.requires_human_review;
+                selectedTicket.status = isEscalated ? 'ESCALATED' : 'DONE';
+                selectedTicket.data = data;
+
+                // Re-render the left queue list item to show status
+                const activeQueueItem = document.querySelector(`.queue-item.selected .queue-item-meta`);
+                if (activeQueueItem) {
+                    if (isEscalated) {
+                        activeQueueItem.innerHTML = `<span style="color:var(--warning); font-weight:600;">ESCALATED</span>`;
+                    } else {
+                        activeQueueItem.innerHTML = `<span style="color:var(--accent); font-weight:600;">DONE</span>`;
+                    }
+                }
+
+                // Recount accurately across all processed tickets
+                const completedTickets = tickets.filter(t => t.status);
+                const repliedTotal = tickets.filter(t => t.status === 'DONE').length;
+                const escalatedTotal = tickets.filter(t => t.status === 'ESCALATED').length;
+
+                document.getElementById('cnt-replied').innerText = repliedTotal;
+                document.getElementById('cnt-escalated').innerText = escalatedTotal;
+                document.getElementById('queue-progress').innerText = `${completedTickets.length} / ${tickets.length} DONE`;
+
+                // Handle review queue & banners
+                if (isEscalated) {
+                    document.getElementById('escalation-banner').style.display = 'flex';
+                    document.getElementById('escalation-reason').innerText = data.triage.review_reasons.join(' | ');
+
+                    // Add to review queue if not already present
+                    if (!reviewQueue.some(r => r.text === selectedTicket.text)) {
+                        reviewQueue.push({
+                            text: selectedTicket.text,
+                            priority: data.predictions.priority,
+                            conf: data.confidences.priority,
+                            reason: data.triage.review_reasons[0] || 'Uncertain',
+                            team: data.triage.assigned_team
+                        });
+                        renderReviewQueue();
+                    }
+                } else {
+                    document.getElementById('escalation-banner').style.display = 'none';
+                }
+
+            } catch (err) {
+                alert('Triage error: ' + err.message);
+            } finally {
+                btn.innerHTML = '<span>▶</span> RUN TRIAGE';
+                btn.disabled = false;
+            }
+        }
+
+        function renderReviewQueue() {
+            const tbody = document.getElementById('review-table-body');
+            tbody.innerHTML = '';
+            reviewQueue.forEach(item => {
+                const tr = document.createElement('tr');
+                const urgClass = item.priority === 'Critical' ? 'urgency-crit' : (item.priority === 'High' ? 'urgency-high' : 'urgency-med');
+                tr.innerHTML = `
+          <td style="max-width:300px; font-weight:500;">${item.text.slice(0, 50)}...</td>
+          <td><span class="urgency-badge ${urgClass}">${item.priority.toUpperCase()}</span></td>
+          <td style="font-family:'JetBrains Mono';">${(item.conf * 100).toFixed(1)}%</td>
+          <td style="color:#ffa39e;">${item.reason}</td>
+          <td style="color:var(--info);">${item.team}</td>
+        `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        window.onload = init;
+    </script>
+</body>
+
+</html>

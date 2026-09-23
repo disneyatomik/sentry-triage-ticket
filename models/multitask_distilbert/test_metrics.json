@@ -1,0 +1,13 @@
+{
+  "sentiment_accuracy": 0.9924,
+  "sentiment_f1": 0.9924,
+  "request_type_accuracy": 0.9914,
+  "request_type_f1": 0.9914,
+  "product_area_accuracy": 0.801,
+  "product_area_f1": 0.7981,
+  "priority_accuracy": 0.5352,
+  "priority_f1": 0.5093,
+  "satisfaction_accuracy": 0.8276,
+  "satisfaction_f1": 0.8253,
+  "exact_match": 0.3676
+}

@@ -1,0 +1,18 @@
+# Python environment & cache
+venv/
+__pycache__/
+*.pyc
+
+# Heavy ML Checkpoints (> 100MB, exceeds GitHub limit)
+*.pt
+*.bin
+*.safetensors
+models/multitask_distilbert/best_model.pt
+
+# Raw heavy datasets
+data/raw/
+
+# System / IDE
+.DS_Store
+.idea/
+.vscode/
